@@ -1,144 +1,81 @@
 import streamlit as st
-import pandas as pd
 
-# Seitenkonfiguration
-st.set_page_config(page_title="Golden Girl Pro", layout="wide", page_icon="👑")
+# Ρυθμίσεις Σελίδας
+st.set_page_config(page_title="AURELIAN PV-Normen", layout="centered", page_icon="☀️")
 
-# --- CSS ΓΙΑ ΜΕΓΙΣΤΗ ΟΡΑΤΟΤΗΤΑ ---
+# --- CSS ΓΙΑ ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΦΑΝΙΣΗ ---
 st.markdown("""
     <style>
-    .stApp { background-color: #000000 !important; }
-    p, span, label, .stMarkdown { color: #ffffff !important; font-weight: bold; }
-    h1, h2, h3 { color: #d4af37 !important; text-align: center; font-family: 'Arial'; }
-    
-    /* ΚΟΥΜΠΙΑ */
-    .stButton>button { 
-        width: 100%; height: 80px; font-size: 22px !important; 
-        background-color: #d4af37 !important; color: #000000 !important; 
-        font-weight: bold !important; border-radius: 15px; border: 2px solid #ffffff !important;
+    .stApp { background-color: #0A0F1E; }
+    h1, h2, h3 { color: #D4A017 !important; text-align: center; }
+    p, label { color: #F1F5F9 !important; font-size: 18px !important; }
+    .result-box {
+        padding: 20px; border-radius: 15px; background-color: #1A2236;
+        border: 2px solid #06B6D4; color: #ffffff; margin-top: 20px;
     }
-    
-    /* ΠΙΝΑΚΕΣ */
-    .stTable, table { color: #ffffff !important; background-color: #1a1a1a !important; border: 2px solid #d4af37 !important; width: 100%; }
-    th { color: #d4af37 !important; background-color: #333333 !important; font-size: 18px !important; text-align: center !important; }
-    td { color: #ffffff !important; font-size: 18px !important; text-align: center !important; border-bottom: 1px solid #444 !important; }
-    
-    /* INPUT BOX */
-    input { background-color: #222222 !important; color: #ffffff !important; border: 2px solid #d4af37 !important; font-size: 20px !important; }
-    
-    /* ΚΑΡΤΕΛΑ ΚΟΠΕΛΑΣ */
-    .girl-box {
-        padding: 30px; border-radius: 20px; background-color: #111111; 
-        border: 3px solid #d4af37; color: #ffffff !important; margin-bottom: 25px;
-        box-shadow: 0px 0px 15px #d4af37;
+    .stButton>button {
+        background-color: #D4A017 !important; color: #000000 !important;
+        font-weight: bold; height: 60px; border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Συνάρτηση για μορφοποίηση ευρώ (π.χ. 450,00€)
-def format_euro(amount):
-    return f"{amount:,.2f}€".replace(",", "X").replace(".", ",").replace("X", ".")
+st.title("☀️ AURELIAN PV-NORMEN")
+st.subheader("Τεχνικός Υπολογιστής Φωτοβολταϊκών")
 
-st.title("👑 GOLDEN GIRL MANAGEMENT")
+# --- ΔΕΔΟΜΕΝΟ ΑΝΑ ΠΕΡΙΟΧΗ (Βάσει του αρχείου σου) ---
+regions = {
+    "Region A (Nord/Küste)": {"sk": 1.10, "windzone": 3},
+    "Region B (Mitteldeutschland)": {"sk": 0.85, "windzone": 2},
+    "Region C (Süddeutschland/Bayern)": {"sk": 1.30, "windzone": 2},
+    "Region D (Hochgebirge)": {"sk": 2.50, "windzone": 4}
+}
 
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("🛠️ EINSTELLUNGEN")
-    comm_rate = st.sidebar.slider("Champagner %", 0, 100, 25) / 100
-    priv_price = st.sidebar.number_input("Privat Preis (€)", value=15.0)
+# --- ΕΙΣΑΓΩΓΗ ΣΤΟΙΧΕΙΩΝ ---
+with st.container():
+    region = st.selectbox("Wähle Region (Περιοχή):", list(regions.keys()))
+    hoehe = st.number_input("Gebäudehöhe (Ύψος κτιρίου σε m):", min_value=0, value=10)
+    neigung = st.slider("Dachneigung (Κλίση στέγης σε °):", 0, 70, 30)
+    schienen = st.radio("Anzahl Schienen (Ράγες ανά πάνελ):", ["1", "2", "3"], index=1)
+    hakentyp = st.selectbox("Hakentyp (Τύπος Άγκιστρου):", ["Standard", "Dünn (Λεπτό)", "Heavy Duty"])
+
+# --- ΛΟΓΙΚΗ ΥΠΟΛΟΓΙΣΜΟΥ (Από το αρχείο AURELIAN) ---
+def calculate_pv():
+    data = regions[region]
+    # Βασικές τιμές
+    base_abstand = 142 if schienen == "2" else 100
+    base_rand = 120
     
-    if 'menu' not in st.session_state:
-        st.session_state.menu = {"Moet": 450.0, "Dom Perignon": 800.0}
+    # Διορθώσεις βάσει ύψους και κλίσης
+    factor = 1.0
+    if hoehe > 15: factor *= 0.85
+    if neigung >= 45: factor *= 0.90
+    if "Dünn" in hakentyp: factor *= 1.05
     
-    with st.form("add_drink"):
-        n_name = st.text_input("Neues Getränk")
-        n_price = st.number_input("Preis (€)", min_value=0.0)
-        if st.form_submit_button("HINZUFÜGEN"):
-            if n_name: 
-                st.session_state.menu[n_name] = n_price
-                st.rerun()
-
-# --- INITIALIZE DATA ---
-if 'sales_data' not in st.session_state:
-    st.session_state.sales_data = []
-
-# --- INPUT SECTION ---
-st.subheader("📝 NEUE BUCHUNG (KATAXΩΡΗΣΗ)")
-g_name = st.text_input("NAME DES MÄDCHENS (ΟΝΟΜΑ)", key="input_name").upper()
-
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    if st.button(f"💃 PRIVAT\n{format_euro(priv_price)}"):
-        if g_name:
-            st.session_state.sales_data.append({
-                "Mädchen": g_name, "Typ": "Privat", 
-                "Leistung": "Privat Show", "Preis": priv_price, "Auszahlung": priv_price
-            })
-            st.toast(f"✔ {g_name} - Privat")
-        else: st.error("NAME!")
-
-with col2:
-    cols = st.columns(2)
-    for i, (name, price) in enumerate(st.session_state.menu.items()):
-        if cols[i % 2].button(f"🍾 {name}\n{format_euro(price)}"):
-            if g_name:
-                st.session_state.sales_data.append({
-                    "Mädchen": g_name, "Typ": "Champagner", 
-                    "Leistung": name, "Preis": price, "Auszahlung": price * comm_rate
-                })
-                st.toast(f"✔ {g_name} - {name}")
-            else: st.error("NAME!")
-
-# --- REPORTS ---
-if st.session_state.sales_data:
-    df = pd.DataFrame(st.session_state.sales_data)
+    abstand = int(base_abstand * factor)
+    rand = int(base_rand * factor)
     
-    st.divider()
-    st.header("📊 ABRECHNUNG (ΕΚΚΑΘΑΡΙΣΗ)")
+    # Επίπεδο Δυσκολίας
+    difficulty = "NORMAL"
+    if data["sk"] > 1.2 or data["windzone"] >= 3:
+        difficulty = "HOCH (ΥΨΗΛΟ ΦΟΡΤΙΟ)"
     
-    all_girls = sorted(df["Mädchen"].unique())
-    selected_girl = st.selectbox("WÄHLE EIN MÄDCHEN (ΕΠΙΛΟΓΗ ΚΟΠΕΛΑΣ):", all_girls)
+    return abstand, rand, difficulty, data["sk"], data["windzone"]
+
+# --- ΕΜΦΑΝΙΣΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ---
+if st.button("BERECHNEN (ΥΠΟΛΟΓΙΣΜΟΣ)"):
+    abstand, rand, diff, sk, wz = calculate_pv()
     
-    if selected_girl:
-        g_df = df[df["Mädchen"] == selected_girl].copy()
-        
-        # Υπολογισμοί
-        p_show = g_df[g_df["Typ"] == "Privat"]["Auszahlung"].sum()
-        p_champ = g_df[g_df["Typ"] == "Champagner"]["Auszahlung"].sum()
-        total_p = p_show + p_champ
-        
-        # Μορφοποίηση για τον πίνακα
-        display_df = g_df[["Leistung", "Preis", "Auszahlung"]].copy()
-        display_df["Preis"] = display_df["Preis"].apply(format_euro)
-        display_df["Auszahlung"] = display_df["Auszahlung"].apply(format_euro)
+    st.markdown(f"""
+    <div class="result-box">
+        <h3>📊 ΑΠΟΤΕΛΕΣΜΑΤΑ (RESULTS)</h3>
+        <p>📏 <b>Schienenabstand:</b> {abstand} cm</p>
+        <p>↔️ <b>Randabstand:</b> {rand} cm</p>
+        <p>❄️ <b>Schneelast (sk):</b> {sk} kN/m²</p>
+        <p>💨 <b>Windzone:</b> {wz}</p>
+        <hr>
+        <h3 style='color: #06B6D4;'>STATUS: {diff}</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-        <div class="girl-box">
-            <h2 style='color: #d4af37 !important;'>Mädchen: {selected_girl}</h2>
-            <p style='font-size: 22px;'>💃 Privat Shows Total: {format_euro(p_show)}</p>
-            <p style='font-size: 22px;'>🍾 Champagner Provision: {format_euro(p_champ)}</p>
-            <hr style='border: 1px solid #d4af37;'>
-            <h2 style='color: #ffffff !important;'>GESAMT AUSZAHLUNG: <span style='color: #00ff00 !important;'>{format_euro(total_p)}</span></h2>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.table(display_df)
-
-    # --- TOTAL CLUB REPORT ---
-    with st.expander("📂 TOTAL CLUB REPORT (ΓΕΝΙΚΟ ΤΑΜΕΙΟ)"):
-        report_df = df.copy()
-        report_df["Preis"] = report_df["Preis"].apply(format_euro)
-        report_df["Auszahlung"] = report_df["Auszahlung"].apply(format_euro)
-        st.table(report_df)
-        
-        total_revenue = df["Preis"].sum()
-        total_girls = df["Auszahlung"].sum()
-        
-        st.metric("TOTAL UMSATZ (ΤΖΙΡΟΣ)", format_euro(total_revenue))
-        st.metric("TOTAL MÄDCHEN (ΚΟΠΕΛΕΣ)", format_euro(total_girls))
-        st.write(f"### NETTO CLUB: {format_euro(total_revenue - total_girls)}")
-
-    if st.button("❌ KASSE SCHLIESSEN (RESET)"):
-        st.session_state.sales_data = []
-        st.rerun()
+st.info("💡 Αυτό το εργαλείο βασίζεται στις προδιαγραφές του προγράμματος AURELIAN για τη Γερμανία.")
