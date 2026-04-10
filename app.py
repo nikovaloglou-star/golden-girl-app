@@ -1,39 +1,60 @@
 import streamlit as st
 import pandas as pd
 
-# Ρυθμίσεις Σελίδας
+# Seitenkonfiguration
 st.set_page_config(page_title="Golden Girl Pro", layout="wide", page_icon="👑")
 
-# CSS για την εμφάνιση των κουμπιών και των πλαισίων
+# --- ΒΕΛΤΙΩΜΕΝΟ CSS ΓΙΑ ΜΕΓΙΣΤΗ ΟΡΑΤΟΤΗΤΑ ---
 st.markdown("""
     <style>
+    /* Γενικό φόντο και χρώμα γραμματοσειράς */
+    .main { background-color: #000000; color: #ffffff; }
+    
+    /* Επικεφαλίδες */
+    h1, h2, h3 { color: #d4af37 !important; }
+    
+    /* Κουμπιά: Χρυσό φόντο με ΜΑΥΡΑ γράμματα για να ξεχωρίζουν */
     .stButton>button { 
-        width: 100%; height: 60px; font-size: 18px; 
-        background-color: #d4af37; color: black; font-weight: bold; border-radius: 10px;
+        width: 100%; height: 70px; font-size: 20px !important; 
+        background-color: #d4af37 !important; color: #000000 !important; 
+        font-weight: bold !important; border-radius: 12px; border: 2px solid #ffffff;
     }
-    .girl-stats {
-        padding: 15px; border-radius: 10px; background-color: #1e1e1e; border-left: 5px solid #d4af37; margin-bottom: 20px;
+    
+    /* Πλαίσια εισαγωγής κειμένου */
+    .stTextInput>div>div>input {
+        background-color: #333333 !important; color: #ffffff !important;
+        border: 2px solid #d4af37 !important; font-size: 18px;
+    }
+
+    /* Πίνακες: Λευκά γράμματα σε σκούρο φόντο */
+    .stDataFrame, .stTable {
+        background-color: #1a1a1a !important; color: #ffffff !important;
+        border: 1px solid #d4af37;
+    }
+    
+    /* Στατιστικά κοπέλας */
+    .girl-box {
+        padding: 20px; border-radius: 15px; background-color: #1a1a1a; 
+        border: 2px solid #d4af37; color: #ffffff; margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("👑 Golden Girl Management")
+st.title("👑 GOLDEN GIRL MANAGEMENT")
 
-# --- ΠΛΑΪΝΟ ΜΕΝΟΥ (SIDEBAR): ΡΥΘΜΙΣΕΙΣ ---
+# --- SIDEBAR: ΡΥΘΜΙΣΕΙΣ ---
 with st.sidebar:
-    st.header("🛠️ Einstellungen") # Ρυθμίσεις
-    comm_rate = st.slider("Champagner Provision %", 0, 100, 25) / 100 # Ποσοστό
-    priv_price = st.number_input("Preis Private Show (€)", value=15.0) # Τιμή Show
+    st.header("🛠️ EINSTELLUNGEN")
+    comm_rate = st.slider("Champagner %", 0, 100, 25) / 100
+    priv_price = st.number_input("Privat Show Preis (€)", value=15.0)
     
-    st.divider()
     if 'menu' not in st.session_state:
         st.session_state.menu = {"Moet": 450.0, "Dom Perignon": 800.0}
     
-    # Φόρμα για προσθήκη ποτών
     with st.form("add_drink"):
-        n_name = st.text_input("Neues Getränk") # Όνομα νέου ποτού
-        n_price = st.number_input("Preis (€)", min_value=0.0) # Τιμή
-        if st.form_submit_button("Hinzufügen"): # Προσθήκη
+        n_name = st.text_input("Neues Getränk")
+        n_price = st.number_input("Preis (€)", min_value=0.0)
+        if st.form_submit_button("HINZUFÜGEN"):
             if n_name: 
                 st.session_state.menu[n_name] = n_price
                 st.rerun()
@@ -44,61 +65,68 @@ if 'sales_data' not in st.session_state:
 
 df_main = pd.DataFrame(st.session_state.sales_data)
 
-# --- ΠΕΡΙΟΧΗ ΚΑΤΑΧΩΡΗΣΗΣ ---
-st.subheader("📝 Buchung eingeben") # Εισαγωγή Καταχώρησης
-girl_name = st.text_input("NAME DES MÄDCHENS", placeholder="z.B. NATASA").upper()
+# --- ΕΙΣΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ ---
+st.subheader("📝 NEUE BUCHUNG (ΝΕΑ ΚΑΤΑΧΩΡΗΣΗ)")
+girl_name = st.text_input("NAME DES MÄDCHENS (ΟΝΟΜΑ ΚΟΠΕΛΑΣ)", placeholder="NATASA").upper()
 
-# --- LIVE ΕΛΕΓΧΟΣ ΓΙΑ ΤΗΝ ΚΟΠΕΛΑ ---
-if girl_name and not df_main.empty:
-    girl_filter = df_main[df_main["Mädchen"] == girl_name]
-    if not girl_filter.empty:
-        with st.container():
-            st.markdown(f'<div class="girl-stats"><b>Aktueller Stand für {girl_name}:</b></div>', unsafe_allow_html=True)
-            st.dataframe(girl_filter[["Leistung", "Preis", "Provision"]], use_container_width=True)
-            st.info(f"Gesamt bisher für {girl_name}: {girl_filter['Provision'].sum():.2f} €")
-
-# --- ΚΟΥΜΠΙΑ ΓΙΑ ΤΑ ΠΟΣΑ ---
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    if st.button(f"💃 PRIVATE SHOW\n({priv_price}€ FIX)"):
+    if st.button(f"💃 PRIVAT SHOW\n{priv_price}€"):
         if girl_name:
-            st.session_state.sales_data.append({"Mädchen": girl_name, "Leistung": "Private Show", "Preis": priv_price, "Provision": priv_price})
-            st.success(f"Show für {girl_name} gespeichert!"); st.rerun()
-        else: st.error("Namen eingeben!")
+            st.session_state.sales_data.append({
+                "Mädchen": girl_name, "Typ": "Privat", 
+                "Leistung": "Privat Show", "Preis": priv_price, "Provision": priv_price
+            })
+            st.rerun()
+        else: st.error("NAME FEHLT!")
 
 with col2:
     cols = st.columns(2)
     for i, (name, price) in enumerate(st.session_state.menu.items()):
-        if cols[i % 2].button(f"🍾 {name}\n({price}€)"):
+        if cols[i % 2].button(f"🍾 {name}\n{price}€"):
             if girl_name:
-                st.session_state.sales_data.append({"Mädchen": girl_name, "Leistung": name, "Preis": price, "Provision": price * comm_rate})
-                st.success(f"{name} für {girl_name} gespeichert!"); st.rerun()
-            else: st.error("Namen eingeben!")
+                st.session_state.sales_data.append({
+                    "Mädchen": girl_name, "Typ": "Champagner", 
+                    "Leistung": name, "Preis": price, "Provision": price * comm_rate
+                })
+                st.rerun()
+            else: st.error("NAME FEHLT!")
 
-# --- ΓΕΝΙΚΗ ΕΙΚΟΝΑ ΚΑΙ ΚΑΡΤΕΛΕΣ ---
+# --- ΑΤΟΜΙΚΕΣ ΚΑΡΤΕΛΕΣ & ΑΝΑΛΥΣΗ ---
 if not df_main.empty:
     st.divider()
-    st.subheader("📊 Tagesabrechnung") # Ημερήσια Αναφορά
+    st.header("📊 EINZELABRECHNUNG (ΑΤΟΜΙΚΗ ΚΑΡΤΕΛΑ)")
     
-    tabs = st.tabs(["Alle Buchungen", "Abrechnung pro Mädchen"])
+    all_girls = sorted(df_main["Mädchen"].unique())
+    selected_girl = st.selectbox("WÄHLE EIN MÄDCHEN (ΔΙΑΛΕΞΕ ΚΟΠΕΛΑ):", all_girls)
     
-    with tabs[0]: # Όλες οι κινήσεις
-        st.table(df_main)
+    if selected_girl:
+        g_df = df_main[df_main["Mädchen"] == selected_girl]
         
-    with tabs[1]: # Καρτέλα ανά κοπέλα
-        all_girls = sorted(df_main["Mädchen"].unique())
-        for g in all_girls:
-            g_df = df_main[df_main["Mädchen"] == g]
-            with st.expander(f"Konto: {g}"): # Καρτέλα: [Όνομα]
-                st.table(g_df)
-                st.write(f"**Auszahlung für {g}: {g_df['Provision'].sum():.2f} €**")
+        # Διαχωρισμός κατανάλωσης και shows
+        privat_total = g_df[g_df["Typ"] == "Privat"]["Provision"].sum()
+        champagner_total = g_df[g_df["Typ"] == "Champagner"]["Provision"].sum()
+        
+        st.markdown(f"""
+        <div class="girl-box">
+            <h2 style='color: #d4af37;'>Konto: {selected_girl}</h2>
+            <p style='font-size: 20px;'>💃 Privat Shows: <b>{privat_total:.2f} €</b></p>
+            <p style='font-size: 20px;'>🍾 Champagner Provision: <b>{champagner_total:.2f} €</b></p>
+            <hr style='border: 1px solid #d4af37;'>
+            <h3 style='color: #ffffff;'>GESAMT AUSZAHLUNG: <span style='color: #00ff00;'>{privat_total + champagner_total:.2f} €</span></h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("Detaillierte Liste (Αναλυτική Λίστα):")
+        st.table(g_df[["Leistung", "Preis", "Provision"]])
 
-    # ΣΥΝΟΛΑ ΣΤΟ ΠΛΑΙ (SIDEBAR)
-    st.sidebar.markdown("---")
-    st.sidebar.metric("Gesamtumsatz Club", f"{df_main['Preis'].sum():.2f} €") # Τζίρος Μαγαζιού
-    st.sidebar.metric("Gesamtauszahlung Mädchen", f"{df_main['Provision'].sum():.2f} €") # Σύνολο Κοριτσιών
-
-    if st.button("❌ Kasse schließen / Reset"): # Κλείσιμο Ταμείου
+    # ΓΕΝΙΚΟ ΤΑΜΕΙΟ ΜΑΓΑΖΙΟΥ (Μόνο για εσένα)
+    with st.expander("TOTAL CLUB REPORT (ΓΕΝΙΚΟ ΤΑΜΕΙΟ)"):
+        st.write(df_main)
+        st.metric("TOTAL UMSATZ (ΤΖΙΡΟΣ)", f"{df_main['Preis'].sum():.2f} €")
+        st.metric("TOTAL MÄDCHEN (ΚΟΠΕΛΕΣ)", f"{df_main['Provision'].sum():.2f} €")
+        
+    if st.button("❌ KASSE SCHLIESSEN (RESET)"):
         st.session_state.sales_data = []
         st.rerun()
