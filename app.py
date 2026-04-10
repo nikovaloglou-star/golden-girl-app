@@ -4,127 +4,101 @@ import pandas as pd
 # Ρυθμίσεις Σελίδας
 st.set_page_config(page_title="Golden Girl Pro", layout="wide", page_icon="👑")
 
-# --- CUSTOM CSS ΓΙΑ LUXURY ΕΜΦΑΝΙΣΗ & ΕΚΤΥΠΩΣΗ ---
+# CSS για την εμφάνιση των κουμπιών και των πλαισίων
 st.markdown("""
     <style>
-    @media print {
-        .no-print { display: none !important; }
-        .print-only { display: block !important; }
-    }
     .stButton>button { 
         width: 100%; height: 60px; font-size: 18px; 
         background-color: #d4af37; color: black; font-weight: bold; border-radius: 10px;
     }
-    .status-box {
-        padding: 20px; border-radius: 10px; background-color: #262730; border: 1px solid #d4af37;
+    .girl-stats {
+        padding: 15px; border-radius: 10px; background-color: #1e1e1e; border-left: 5px solid #d4af37; margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("👑 Golden Girl Management System")
+st.title("👑 Golden Girl Management")
 
-# --- SIDEBAR: ΡΥΘΜΙΣΕΙΣ ΚΑΤΑΛΟΓΟΥ ---
+# --- ΠΛΑΪΝΟ ΜΕΝΟΥ (SIDEBAR): ΡΥΘΜΙΣΕΙΣ ---
 with st.sidebar:
-    st.header("🛠️ Διαχείριση Καταλόγου")
+    st.header("🛠️ Einstellungen") # Ρυθμίσεις
+    comm_rate = st.slider("Champagner Provision %", 0, 100, 25) / 100 # Ποσοστό
+    priv_price = st.number_input("Preis Private Show (€)", value=15.0) # Τιμή Show
     
-    # Ρύθμιση Ποσοστού & Private
-    st.session_state.comm_rate = st.slider("Ποσοστό Σαμπάνιας %", 0, 100, 25) / 100
-    st.session_state.priv_price = st.number_input("Τιμή Private Show (€)", value=15.0)
-
     st.divider()
-    
-    # Διαχείριση Ποτών
-    st.subheader("Προσθήκη/Αλλαγή Ποτών")
     if 'menu' not in st.session_state:
         st.session_state.menu = {"Moet": 450.0, "Dom Perignon": 800.0}
     
+    # Φόρμα για προσθήκη ποτών
     with st.form("add_drink"):
-        new_name = st.text_input("Όνομα Ποτού")
-        new_price = st.number_input("Τιμή (€)", min_value=0.0)
-        if st.form_submit_button("Προσθήκη στον Κατάλογο"):
-            if new_name:
-                st.session_state.menu[new_name] = new_price
+        n_name = st.text_input("Neues Getränk") # Όνομα νέου ποτού
+        n_price = st.number_input("Preis (€)", min_value=0.0) # Τιμή
+        if st.form_submit_button("Hinzufügen"): # Προσθήκη
+            if n_name: 
+                st.session_state.menu[n_name] = n_price
                 st.rerun()
 
-    if st.button("🗑️ Καθαρισμός Καταλόγου"):
-        st.session_state.menu = {}
-        st.rerun()
-
-# --- ΚΥΡΙΟ ΜΕΡΟΣ: ΚΑΤΑΓΡΑΦΗ ---
+# --- ΜΝΗΜΗ ΔΕΔΟΜΕΝΩΝ ---
 if 'sales_data' not in st.session_state:
     st.session_state.sales_data = []
 
-st.subheader("📝 Νέα Καταχώρηση")
-c1, c2 = st.columns([1, 2])
+df_main = pd.DataFrame(st.session_state.sales_data)
 
-with c1:
-    girl_name = st.text_input("ΟΝΟΜΑ ΚΟΠΕΛΑΣ", placeholder="π.χ. Natasa").upper()
+# --- ΠΕΡΙΟΧΗ ΚΑΤΑΧΩΡΗΣΗΣ ---
+st.subheader("📝 Buchung eingeben") # Εισαγωγή Καταχώρησης
+girl_name = st.text_input("NAME DES MÄDCHENS", placeholder="z.B. NATASA").upper()
 
-with c2:
-    st.write("Επίλεξε Υπηρεσία/Ποτό:")
-    col_p, col_m = st.columns([1, 2])
-    
-    with col_p:
-        if st.button(f"💃 PRIVATE ({st.session_state.priv_price}€)"):
+# --- LIVE ΕΛΕΓΧΟΣ ΓΙΑ ΤΗΝ ΚΟΠΕΛΑ ---
+if girl_name and not df_main.empty:
+    girl_filter = df_main[df_main["Mädchen"] == girl_name]
+    if not girl_filter.empty:
+        with st.container():
+            st.markdown(f'<div class="girl-stats"><b>Aktueller Stand für {girl_name}:</b></div>', unsafe_allow_html=True)
+            st.dataframe(girl_filter[["Leistung", "Preis", "Provision"]], use_container_width=True)
+            st.info(f"Gesamt bisher für {girl_name}: {girl_filter['Provision'].sum():.2f} €")
+
+# --- ΚΟΥΜΠΙΑ ΓΙΑ ΤΑ ΠΟΣΑ ---
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    if st.button(f"💃 PRIVATE SHOW\n({priv_price}€ FIX)"):
+        if girl_name:
+            st.session_state.sales_data.append({"Mädchen": girl_name, "Leistung": "Private Show", "Preis": priv_price, "Provision": priv_price})
+            st.success(f"Show für {girl_name} gespeichert!"); st.rerun()
+        else: st.error("Namen eingeben!")
+
+with col2:
+    cols = st.columns(2)
+    for i, (name, price) in enumerate(st.session_state.menu.items()):
+        if cols[i % 2].button(f"🍾 {name}\n({price}€)"):
             if girl_name:
-                st.session_state.sales_data.append({
-                    "Κοπέλα": girl_name, "Είδος": "Private Show", 
-                    "Τιμή": st.session_state.priv_price, "Προμήθεια": st.session_state.priv_price
-                })
-                st.toast(f"Καταχωρήθηκε Show για {girl_name}")
-            else: st.error("Βάλε όνομα!")
+                st.session_state.sales_data.append({"Mädchen": girl_name, "Leistung": name, "Preis": price, "Provision": price * comm_rate})
+                st.success(f"{name} für {girl_name} gespeichert!"); st.rerun()
+            else: st.error("Namen eingeben!")
 
-    with col_m:
-        # Δημιουργία κουμπιών για κάθε ποτό στον κατάλογο
-        cols = st.columns(2)
-        for i, (name, price) in enumerate(st.session_state.menu.items()):
-            if cols[i % 2].button(f"🍾 {name} ({price}€)"):
-                if girl_name:
-                    st.session_state.sales_data.append({
-                        "Κοπέλα": girl_name, "Είδος": name, 
-                        "Τιμή": price, "Προμήθεια": price * st.session_state.comm_rate
-                    })
-                    st.toast(f"Καταχωρήθηκε {name} για {girl_name}")
-                else: st.error("Βάλε όνομα!")
-
-# --- ΑΠΟΤΕΛΕΣΜΑΤΑ & ΚΑΡΤΕΛΕΣ ---
-if st.session_state.sales_data:
-    df = pd.DataFrame(st.session_state.sales_data)
-    
+# --- ΓΕΝΙΚΗ ΕΙΚΟΝΑ ΚΑΙ ΚΑΡΤΕΛΕΣ ---
+if not df_main.empty:
     st.divider()
-    st.subheader("📊 Αναφορά Ημέρας (Καρτέλες Κοριτσιών)")
+    st.subheader("📊 Tagesabrechnung") # Ημερήσια Αναφορά
     
-    # Επιλογή Καρτέλας
-    all_girls = sorted(list(df["Κοπέλα"].unique()))
-    selected_girl = st.selectbox("Επίλεξε Κοπέλα για να δεις την καρτέλα της (ή 'ΟΛΕΣ'):", ["ΟΛΕΣ"] + all_girls)
+    tabs = st.tabs(["Alle Buchungen", "Abrechnung pro Mädchen"])
     
-    if selected_girl == "ΟΛΕΣ":
-        view_df = df
-    else:
-        view_df = df[df["Κοπέλα"] == selected_girl]
-
-    st.table(view_df)
-
-    # ΣΥΝΟΛΑ
-    total_revenue = view_df["Τιμή"].sum()
-    total_payout = view_df["Προμήθεια"].sum()
-
-    st.markdown(f"""
-    <div class="status-box">
-        <h3>ΣΥΝΟΛΑ {selected_girl}</h3>
-        <p>Συνολικός Τζίρος: <b>{total_revenue:,.2f} €</b></p>
-        <p>Πληρωτέα Προμήθεια: <b>{total_payout:,.2f} €</b></p>
-        <p>Καθαρά για το Μαγαζί: <b>{(total_revenue - total_payout):,.2f} €</b></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # --- ΕΚΤΥΠΩΣΗ ---
-    st.write("")
-    if st.button("🖨️ Εκτύπωση Ημέρας / Αποθήκευση PDF"):
-        st.info("💡 Πάτα Ctrl+P (ή Command+P σε Mac) για να εκτυπώσεις την οθόνη.")
+    with tabs[0]: # Όλες οι κινήσεις
+        st.table(df_main)
         
-    if st.button("❌ Κλείσιμο Ταμείου (Reset)"):
+    with tabs[1]: # Καρτέλα ανά κοπέλα
+        all_girls = sorted(df_main["Mädchen"].unique())
+        for g in all_girls:
+            g_df = df_main[df_main["Mädchen"] == g]
+            with st.expander(f"Konto: {g}"): # Καρτέλα: [Όνομα]
+                st.table(g_df)
+                st.write(f"**Auszahlung für {g}: {g_df['Provision'].sum():.2f} €**")
+
+    # ΣΥΝΟΛΑ ΣΤΟ ΠΛΑΙ (SIDEBAR)
+    st.sidebar.markdown("---")
+    st.sidebar.metric("Gesamtumsatz Club", f"{df_main['Preis'].sum():.2f} €") # Τζίρος Μαγαζιού
+    st.sidebar.metric("Gesamtauszahlung Mädchen", f"{df_main['Provision'].sum():.2f} €") # Σύνολο Κοριτσιών
+
+    if st.button("❌ Kasse schließen / Reset"): # Κλείσιμο Ταμείου
         st.session_state.sales_data = []
         st.rerun()
-else:
-    st.info("Δεν υπάρχουν ακόμα καταχωρήσεις για σήμερα.")
