@@ -4,38 +4,44 @@ import pandas as pd
 # Seitenkonfiguration
 st.set_page_config(page_title="Golden Girl Pro", layout="wide", page_icon="👑")
 
-# --- ΒΕΛΤΙΩΜΕΝΟ CSS ΓΙΑ ΜΕΓΙΣΤΗ ΟΡΑΤΟΤΗΤΑ ---
+# --- CSS ΓΙΑ ΜΕΓΙΣΤΗ ΟΡΑΤΟΤΗΤΑ ΚΑΙ ΛΕΥΚΑ ΓΡΑΜΜΑΤΑ ΣΤΟΥΣ ΠΙΝΑΚΕΣ ---
 st.markdown("""
     <style>
-    /* Γενικό φόντο και χρώμα γραμματοσειράς */
-    .main { background-color: #000000; color: #ffffff; }
+    /* Γενικό φόντο */
+    .main { background-color: #000000 !important; color: #ffffff !important; }
     
     /* Επικεφαλίδες */
-    h1, h2, h3 { color: #d4af37 !important; }
+    h1, h2, h3, p, span { color: #ffffff !important; }
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #d4af37 !important; }
     
-    /* Κουμπιά: Χρυσό φόντο με ΜΑΥΡΑ γράμματα για να ξεχωρίζουν */
+    /* ΚΟΥΜΠΙΑ: Χρυσό με Μαύρα γράμματα */
     .stButton>button { 
         width: 100%; height: 70px; font-size: 20px !important; 
         background-color: #d4af37 !important; color: #000000 !important; 
         font-weight: bold !important; border-radius: 12px; border: 2px solid #ffffff;
     }
     
-    /* Πλαίσια εισαγωγής κειμένου */
-    .stTextInput>div>div>input {
-        background-color: #333333 !important; color: #ffffff !important;
-        border: 2px solid #d4af37 !important; font-size: 18px;
+    /* ΠΙΝΑΚΕΣ: Εξαναγκασμός λευκών γραμμάτων παντού */
+    .stTable, table, tr, td, th {
+        color: #ffffff !important;
+        background-color: #1a1a1a !important;
+        font-size: 16px !important;
+    }
+    thead tr th {
+        background-color: #333333 !important;
+        color: #d4af37 !important; /* Χρυσές επικεφαλίδες στον πίνακα */
     }
 
-    /* Πίνακες: Λευκά γράμματα σε σκούρο φόντο */
-    .stDataFrame, .stTable {
-        background-color: #1a1a1a !important; color: #ffffff !important;
-        border: 1px solid #d4af37;
+    /* Πλαίσια εισαγωγής */
+    .stTextInput>div>div>input {
+        background-color: #222222 !important; color: #ffffff !important;
+        border: 2px solid #d4af37 !important;
     }
-    
-    /* Στατιστικά κοπέλας */
+
+    /* Το κουτί της κοπέλας */
     .girl-box {
         padding: 20px; border-radius: 15px; background-color: #1a1a1a; 
-        border: 2px solid #d4af37; color: #ffffff; margin-bottom: 20px;
+        border: 2px solid #d4af37; color: #ffffff !important; margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -66,8 +72,8 @@ if 'sales_data' not in st.session_state:
 df_main = pd.DataFrame(st.session_state.sales_data)
 
 # --- ΕΙΣΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ ---
-st.subheader("📝 NEUE BUCHUNG (ΝΕΑ ΚΑΤΑΧΩΡΗΣΗ)")
-girl_name = st.text_input("NAME DES MÄDCHENS (ΟΝΟΜΑ ΚΟΠΕΛΑΣ)", placeholder="NATASA").upper()
+st.subheader("📝 NEUE BUCHUNG")
+girl_name = st.text_input("NAME DES MÄDCHENS", placeholder="NATASA").upper()
 
 col1, col2 = st.columns([1, 2])
 
@@ -93,40 +99,23 @@ with col2:
                 st.rerun()
             else: st.error("NAME FEHLT!")
 
-# --- ΑΤΟΜΙΚΕΣ ΚΑΡΤΕΛΕΣ & ΑΝΑΛΥΣΗ ---
+# --- ΑΤΟΜΙΚΕΣ ΚΑΡΤΕΛΕΣ ---
 if not df_main.empty:
     st.divider()
-    st.header("📊 EINZELABRECHNUNG (ΑΤΟΜΙΚΗ ΚΑΡΤΕΛΑ)")
+    st.header("📊 EINZELABRECHNUNG")
     
     all_girls = sorted(df_main["Mädchen"].unique())
-    selected_girl = st.selectbox("WÄHLE EIN MÄDCHEN (ΔΙΑΛΕΞΕ ΚΟΠΕΛΑ):", all_girls)
+    selected_girl = st.selectbox("WÄHLE EIN MÄDCHEN:", all_girls)
     
     if selected_girl:
         g_df = df_main[df_main["Mädchen"] == selected_girl]
         
-        # Διαχωρισμός κατανάλωσης και shows
         privat_total = g_df[g_df["Typ"] == "Privat"]["Provision"].sum()
         champagner_total = g_df[g_df["Typ"] == "Champagner"]["Provision"].sum()
         
+        # Εμφάνιση της κάρτας με λευκά γράμματα
         st.markdown(f"""
         <div class="girl-box">
-            <h2 style='color: #d4af37;'>Konto: {selected_girl}</h2>
-            <p style='font-size: 20px;'>💃 Privat Shows: <b>{privat_total:.2f} €</b></p>
-            <p style='font-size: 20px;'>🍾 Champagner Provision: <b>{champagner_total:.2f} €</b></p>
-            <hr style='border: 1px solid #d4af37;'>
-            <h3 style='color: #ffffff;'>GESAMT AUSZAHLUNG: <span style='color: #00ff00;'>{privat_total + champagner_total:.2f} €</span></h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.write("Detaillierte Liste (Αναλυτική Λίστα):")
-        st.table(g_df[["Leistung", "Preis", "Provision"]])
-
-    # ΓΕΝΙΚΟ ΤΑΜΕΙΟ ΜΑΓΑΖΙΟΥ (Μόνο για εσένα)
-    with st.expander("TOTAL CLUB REPORT (ΓΕΝΙΚΟ ΤΑΜΕΙΟ)"):
-        st.write(df_main)
-        st.metric("TOTAL UMSATZ (ΤΖΙΡΟΣ)", f"{df_main['Preis'].sum():.2f} €")
-        st.metric("TOTAL MÄDCHEN (ΚΟΠΕΛΕΣ)", f"{df_main['Provision'].sum():.2f} €")
-        
-    if st.button("❌ KASSE SCHLIESSEN (RESET)"):
-        st.session_state.sales_data = []
-        st.rerun()
+            <h2 style='color: #d4af37 !important;'>Konto: {selected_girl}</h2>
+            <p style='font-size: 20px; color: #ffffff !important;'>💃 Privat Shows: <b>{privat_total:.2f} €</b></p>
+            <p style='font-size: 20px; color
